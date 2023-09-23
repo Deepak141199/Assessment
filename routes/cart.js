@@ -1,60 +1,90 @@
 const express = require('express');
 const router = express.Router();
 const Cart = require('../models/Cart');
-//const mongoose = require('./db'); // Import the database connection setup
-//const User = require('./models/user'); // Import the User model
 const Product = require('../models/product'); 
-
-const cart = new Cart(); // Create a cart instance
-const app = express();
-const port = 3002;
+const jwt = require('jsonwebtoken');
+const secretkey="secretkey";
 
 // Middleware to parse JSON request bodies
 router.use(express.json());
 
-router.post('/add/:productId', async (req, res) => {
-    const productId = req.params.productId;
-  
-    // Check if 'quantity' is present in 'req.body'
-    if ('quantity' in req.body) {
-      const { quantity } = req.body;
-  
-      try {
-        // Fetch the actual product from the database using Mongoose
-        const product = await Product.findById(productId);
-  
-        if (!product) {
-          return res.status(404).json({ message: 'Product not found' });
-        }
-  
-        // Now you have the actual product details to add to the cart
-        cart.addItem({
-          id: productId,
-          name: product.name,
-          price: product.price,
-        }, quantity);
-  
-        res.json({ message: 'Product added to cart successfully' });
-      } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Internal Server Error' });
-      }
-    } else {
-      // Handle the case where 'quantity' is not present in 'req.body'
-      res.status(400).json({ message: 'Missing or invalid quantity' });
+// Route to add a product to the cart
+router.post('/add/:productname',verifyToken,   async (req, res) => {
+  const productname = req.params.productname;
+  const userName = req.user.username; 
+  const { quantity } = req.body;
+
+  try {
+    // Find the user's cart or create one if it doesn't exist
+    let cart = await Cart.findOne({ userName });
+
+    if (!cart) {
+      cart = new Cart({ userName });
     }
-  });
-  
-  
-// Route to view the cart
-router.get('/view', (req, res) => {
-  const cartItems = cart.getItems();
-  res.json({ cartItems });
+
+    // Fetch the product from the database using Mongoose
+    const product = await Product.findOne({name : productname});
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Add the product to the cart
+    cart.addItem(productname, quantity);
+
+    // Save the updated cart
+    await cart.save();
+
+    res.json({ message: 'Product added to cart successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
 });
-// Start the server
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+
+// ... Other routes ...
+
+// Route to get items in the user's cart
+router.get('/view', verifyToken, async (req, res) => {
+  const userName = req.user.username;
+
+  try {
+    // Find the user's cart
+    const cart = await Cart.findOne({ userName });
+
+    if (!cart) {
+      return res.status(404).json({ message: 'Cart not found' });
+    }
+
+    // Get the items in the cart
+    const items = cart.getItems();
+
+    res.json({ items });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+ 
+function verifyToken(req, res, next) {
+  const token = req.headers['authorization'];
+
+  if (typeof token === 'undefined') {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  jwt.verify(token, secretkey , (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    req.user = user;
+    next();
   });
-  
+}
+
+// ... Other routes ...
 
 module.exports = router;
+
+

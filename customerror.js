@@ -15,4 +15,4 @@ class CustomError extends Error {
       Error.captureStackTrace(this, this.constructor);
     }
   }
-  module.exports=CustomError,ValidationError;
+  module.exports={CustomError,ValidationError};

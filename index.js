@@ -2,19 +2,38 @@ const express = require('express');
 const mongoose = require('./db'); // Import the database connection setup
 const User = require('./models/user'); // Import the User model
 const Product = require('./models/product'); // Import the Product model
+const cartRoutes = require('./routes/cart');
+const orderRoutes =require('./routes/Order');
 const jwt = require('jsonwebtoken');
 const CustomError = require('./customerror');
 const ValidationError = require('./customerror');
 const handleGlobalError = require('./globalerror');
-const cartRoutes = require('./routes/cart');
 const secretkey="secretkey";
 
 const app = express();
-app.use('/cart', cartRoutes); 
 const port = 3001;
+
+function verifyToken(req, res, next) {
+  const token = req.headers['authorization'];
+
+  if (typeof token === 'undefined') {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  jwt.verify(token, secretkey , (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    req.user = user;
+    next();
+  });
+}
 
 // Middleware
 app.use(express.json());
+
+app.use('/cart', cartRoutes); 
+app.use('/order', orderRoutes); // Use the order route
 
 // User registration route
 app.post('/register', async (req, res) => {
@@ -37,6 +56,8 @@ app.post('/register', async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
+
 
 // Authenticate a user
 app.post('/login', async (req, res) => {
@@ -70,6 +91,8 @@ app.post('/login', async (req, res) => {
 });
 
 
+
+
 // Route to retrieve and display products
 app.get('/products', async (req, res) => {
     try {
@@ -81,7 +104,10 @@ app.get('/products', async (req, res) => {
       res.status(500).json({ message: 'Internal Server Error' });
     }
   });
-  app.get('/products/:productId', async (req, res, next) => {
+
+
+
+app.get('/products/:productId', async (req, res, next) => {
     try {
       const productId = req.params.productId;
   
@@ -98,20 +124,14 @@ app.get('/products', async (req, res) => {
     }
   });
 
-  // Custom error handler for handling instances of CustomError
-app.use((error, req, res, next) => {
-  if (error instanceof CustomError) {
-    return res.status(error.statusCode).json({ message: error.message });
-  }
-  // If it's not a CustomError, pass it to the next error handler
-  next(error);
-});
-
 // Use the global error handler as the last error-handling middleware
-app.use(handleGlobalError);
+  app.use(handleGlobalError);
   
+
+
+
   // Create a new product (Secured with JWT authentication)
-  app.post('/products', verifyToken, async (req, res,next) => {
+app.post('/products', verifyToken, async (req, res,next) => {
     try {
       // Get the product data from the request body
       const { name, price } = req.body;
@@ -132,23 +152,6 @@ app.use(handleGlobalError);
   });
   // Use the global error handler as the last error-handling middleware
 app.use(handleGlobalError);
-
-
-function verifyToken(req, res, next) {
-  const token = req.headers['authorization'];
-
-  if (typeof token === 'undefined') {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-
-  jwt.verify(token, secretkey , (err, user) => {
-    if (err) {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-    req.user = user;
-    next();
-  });
-}
 
 // Update an existing product (Secured with JWT authentication)
 app.put('/products/:productId', verifyToken, async (req, res) => {
@@ -181,6 +184,10 @@ app.put('/products/:productId', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
+
+
+
 app.get('/profile',verifyToken, async (req, res) => {
   try {
 
@@ -198,6 +205,8 @@ app.get('/profile',verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
+
 
 // Route to update the user's username by user ID
 app.put('/profile/:userId', verifyToken, async (req, res) => {
@@ -230,6 +239,8 @@ app.put('/profile/:userId', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
+
 
 
 // Define an error handler middleware
