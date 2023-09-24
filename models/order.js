@@ -21,7 +21,7 @@ const orderSchema = new mongoose.Schema({
     type:String,
     required:true,
   },
-  isCompleted: {
+  Paymentstatus: {
     type: Boolean,
     default: false,
   },

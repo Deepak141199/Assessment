@@ -4,6 +4,7 @@ const User = require('./models/user'); // Import the User model
 const Product = require('./models/product'); // Import the Product model
 const cartRoutes = require('./routes/cart');
 const orderRoutes =require('./routes/Order');
+const paymentRoutes=require('./routes/payment');
 const jwt = require('jsonwebtoken');
 const CustomError = require('./customerror');
 const ValidationError = require('./customerror');
@@ -34,6 +35,7 @@ app.use(express.json());
 
 app.use('/cart', cartRoutes); 
 app.use('/order', orderRoutes); // Use the order route
+app.use('/',paymentRoutes);
 
 // User registration route
 app.post('/register', async (req, res) => {
@@ -239,8 +241,6 @@ app.put('/profile/:userId', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
-
-
 
 
 // Define an error handler middleware
