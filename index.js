@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const CustomError = require('./customerror');
 const ValidationError = require('./customerror');
 const handleGlobalError = require('./globalerror');
+const cors = require("cors"); 
 const secretkey="secretkey";
 
 const app = express();
@@ -32,6 +33,7 @@ function verifyToken(req, res, next) {
 
 // Middleware
 app.use(express.json());
+app.use(cors()); 
 
 app.use('/cart', cartRoutes); 
 app.use('/order', orderRoutes); // Use the order route
