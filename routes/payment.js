@@ -5,6 +5,7 @@ require("dotenv").config();
  
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const jwt = require('jsonwebtoken');
+const PaymentIntentSerializer = require('../serializers');
 const User = require('../models/user');
 const secretkey = "secretkey";
 
@@ -61,7 +62,7 @@ router.post('/payment-intent', verifyToken,async (req, res) => {
       customer: customerId, // Use the customer's ID here
     });
 
-    res.json({ clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id });
+    res.json({paymentIntentId: paymentIntent.id} );
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal Server Error' });

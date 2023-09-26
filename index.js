@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const CustomError = require('./customerror');
 const ValidationError = require('./customerror');
 const handleGlobalError = require('./globalerror');
+const {  UserSerializer,ProductSerializer } = require('./serializers');
 const cors = require("cors"); 
 const secretkey="secretkey";
 
@@ -99,15 +100,21 @@ app.post('/login', async (req, res) => {
 
 // Route to retrieve and display products
 app.get('/products', async (req, res) => {
-    try {
-      // Retrieve all products from the database
-      const products= await Product.find({});
-      res.json(products);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Internal Server Error' });
-    }
-  });
+  try {
+    const products = await Product.find({});
+    const serializedProducts = ProductSerializer.serialize(products);
+
+    // Extract only 'name' and 'price' attributes and put them in a new array
+    const resultArray = serializedProducts.data.map((item) => ({
+      name: item.attributes.name,
+      price: item.attributes.price,
+    }));
+
+    res.json(resultArray);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 
 
@@ -202,8 +209,17 @@ app.get('/profile',verifyToken, async (req, res) => {
       return res.status(404).json({ message: 'User profile not found' });
     }
 
-    // Respond with the user's profile data
-    res.status(200).json(user);
+    const serializedUser = UserSerializer.serialize(user);
+    const { attributes } = serializedUser.data;
+
+      // Create a new object with the desired fields
+      const serializedData = {
+        username: attributes.username,
+        id: attributes.id,
+      };
+  
+      res.json(serializedData);
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal Server Error' });
