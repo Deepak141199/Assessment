@@ -8,7 +8,7 @@ const secretkey="secretkey";
 // Middleware to parse JSON request bodies
 router.use(express.json());
 
-// Route to add a product to the cart
+// add a product to the cart
 router.post('/add/:productname',verifyToken,   async (req, res) => {
   const productname = req.params.productname;
   const userName = req.user.username; 
@@ -29,7 +29,7 @@ router.post('/add/:productname',verifyToken,   async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    // Add the product to the cart
+    // Add the product 
     cart.addItem(productname, quantity);
 
     // Save the updated cart
@@ -42,9 +42,8 @@ router.post('/add/:productname',verifyToken,   async (req, res) => {
   }
 });
 
-// ... Other routes ...
 
-// Route to get items in the user's cart
+// get items in the user's cart
 router.get('/view', verifyToken, async (req, res) => {
   const userName = req.user.username;
 
@@ -82,8 +81,6 @@ function verifyToken(req, res, next) {
     next();
   });
 }
-
-// ... Other routes ...
 
 module.exports = router;
 

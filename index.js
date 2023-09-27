@@ -1,15 +1,17 @@
 const express = require('express');
-const mongoose = require('./db'); // Import the database connection setup
-const User = require('./models/user'); // Import the User model
-const Product = require('./models/product'); // Import the Product model
+const mongoose = require('./db'); 
+const User = require('./models/user'); 
+const Product = require('./models/product'); 
 const cartRoutes = require('./routes/cart');
 const orderRoutes =require('./routes/Order');
 const paymentRoutes=require('./routes/payment');
+const fileRoutes =require('./routes/fileupload');
 const jwt = require('jsonwebtoken');
-const CustomError = require('./customerror');
-const ValidationError = require('./customerror');
+const {CustomError,ValidationError} = require('./customerror');
 const handleGlobalError = require('./globalerror');
-const {  UserSerializer,ProductSerializer } = require('./serializers');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const { UserSerializer,ProductSerializer } = require('./serializers');
 const cors = require("cors"); 
 const secretkey="secretkey";
 
@@ -35,12 +37,25 @@ function verifyToken(req, res, next) {
 // Middleware
 app.use(express.json());
 app.use(cors()); 
+app.use(helmet());
 
+// rate limiter
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 6, 
+});
+
+// rate limiting middleware
+app.use('/', limiter);
+
+//routes
 app.use('/cart', cartRoutes); 
-app.use('/order', orderRoutes); // Use the order route
+app.use('/order', orderRoutes); 
 app.use('/',paymentRoutes);
+app.use('/',fileRoutes);
 
-// User registration route
+
+// User registration 
 app.post('/register', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -51,7 +66,6 @@ app.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Create a new user
     const newUser = new User({ username, password });
     await newUser.save();
 
@@ -69,14 +83,12 @@ app.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // Find the user by username
     const user = await User.findOne({ username });
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Compare the provided password with the stored password
     if (user.password !== password) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -84,11 +96,14 @@ app.post('/login', async (req, res) => {
     // Generate a JWT token
     const token = jwt.sign({ username }, secretkey, { expiresIn: '3000s' });
 
-    // Fetch user profile data from the UserProfile model
     const userProfile = await User.findOne({ username });
+    const sanitizedUserProfile = {
+      username: userProfile.username,
+      userId: userProfile._id,
 
-    // For simplicity, we'll just send a success message and the token
-    res.status(200).json({ message: 'Authentication successful', token, userProfile });
+    };
+  
+    res.status(200).json({ message: 'Authentication successful', token,userProfile: sanitizedUserProfile  });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal Server Error' });
@@ -98,13 +113,11 @@ app.post('/login', async (req, res) => {
 
 
 
-// Route to retrieve and display products
+// to retrieve products
 app.get('/products', async (req, res) => {
   try {
     const products = await Product.find({});
     const serializedProducts = ProductSerializer.serialize(products);
-
-    // Extract only 'name' and 'price' attributes and put them in a new array
     const resultArray = serializedProducts.data.map((item) => ({
       name: item.attributes.name,
       price: item.attributes.price,
@@ -121,12 +134,10 @@ app.get('/products', async (req, res) => {
 app.get('/products/:productId', async (req, res, next) => {
     try {
       const productId = req.params.productId;
-  
-      // Find the product by ID
       const product = await Product.findById(productId);
   
       if (!product) {
-        throw new CustomError('Product not found'); // Use the CustomError class
+        throw new CustomError('Product not found'); 
       }
   
       res.json(product);
@@ -135,47 +146,37 @@ app.get('/products/:productId', async (req, res, next) => {
     }
   });
 
-// Use the global error handler as the last error-handling middleware
-  app.use(handleGlobalError);
-  
 
 
 
-  // Create a new product (Secured with JWT authentication)
+  // Create a new product
 app.post('/products', verifyToken, async (req, res,next) => {
     try {
-      // Get the product data from the request body
       const { name, price } = req.body;
   
-      // Validate the product data
       if (!name || !price) {
         throw new ValidationError('Product name and price are required');
       }
   
-      // Create and save the product to the database
       const product = new Product({ name, price });
       await product.save();
   
-      res.status(201).json(product); // Respond with the created product
+      res.status(201).json(product); 
     } catch (error) {
       next(error);
     }
   });
-  // Use the global error handler as the last error-handling middleware
-app.use(handleGlobalError);
 
-// Update an existing product (Secured with JWT authentication)
+// Update an existing product
 app.put('/products/:productId', verifyToken, async (req, res) => {
   try {
     const productId = req.params.productId;
     const { name, price } = req.body;
 
-    // Validate the product data
     if (!name || !price) {
       return res.status(400).json({ message: 'Product name and price are required' });
     }
 
-    // Find the product by ID
     const product = await Product.findById(productId);
 
     if (!product) {
@@ -186,7 +187,6 @@ app.put('/products/:productId', verifyToken, async (req, res) => {
     product.name = name;
     product.price = price;
 
-    // Save the updated product to the database
     await product.save();
 
     res.status(200).json(product);
@@ -228,13 +228,11 @@ app.get('/profile',verifyToken, async (req, res) => {
 
 
 
-// Route to update the user's username by user ID
+//to update the user's username by user ID
 app.put('/profile/:userId', verifyToken, async (req, res) => {
   try {
-    // Get the new username from the request body
     const newUsername = req.body.username;
 
-    // Check if a new username was provided
     if (!newUsername) {
       return res.status(400).json({ message: 'New username is required' });
     }
@@ -249,8 +247,6 @@ app.put('/profile/:userId', verifyToken, async (req, res) => {
 
     // Update the username
     user.username = newUsername;
-
-    // Save the updated user data
     await user.save();
 
     res.status(200).json({ message: 'Username updated successfully' });
@@ -261,7 +257,7 @@ app.put('/profile/:userId', verifyToken, async (req, res) => {
 });
 
 
-// Define an error handler middleware
+// an error handler middleware
 app.use((error, req, res, next) => {
   console.error(error);
 
@@ -271,7 +267,11 @@ app.use((error, req, res, next) => {
 
   
 });
-// Start the server
+
+
+// the global error handler
+app.use(handleGlobalError);
+  
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });

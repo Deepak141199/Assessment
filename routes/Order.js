@@ -4,16 +4,16 @@ const Order = require('../models/order');
 const jwt = require('jsonwebtoken');
 const secretkey = "secretkey";
 
-// Middleware to parse JSON request bodies
+
 router.use(express.json());
 
-// Create a new order
+
 router.post('/place-order', verifyToken,  async (req, res) => {
   const username = req.user.username; 
   try {
     const { Amount , productName, Address } = req.body; 
    
-    // Create a new order
+    //  new order
     const order = new Order({
       username: username, 
       Amount,
@@ -21,7 +21,7 @@ router.post('/place-order', verifyToken,  async (req, res) => {
       Address
     });
 
-    // Save the order to the database
+    // Save the order 
     await order.save();
 
     res.status(201).json(order);

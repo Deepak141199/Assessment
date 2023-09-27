@@ -5,15 +5,15 @@ require("dotenv").config();
  
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const jwt = require('jsonwebtoken');
-const PaymentIntentSerializer = require('../serializers');
-const User = require('../models/user');
 const secretkey = "secretkey";
+//const PaymentIntentSerializer = require('../serializers');
+//const User = require('../models/user');
 
 
-// Middleware to parse JSON request bodies
+
 router.use(express.json());
 
-// Step 1: Create a Customer
+// Create a Customer
 router.post('/create-customer', verifyToken,async (req, res) => {
   try {
     const { email, name } = req.body;
@@ -30,12 +30,13 @@ router.post('/create-customer', verifyToken,async (req, res) => {
   }
 });
 
-// Step 2: Add a Card to the Customer
+
+//  Add a Card to the Customer
 router.post('/add-card',verifyToken, async (req, res) => {
   try {
       const { customerId, 
       
-       } = req.body; // cardToken is obtained during card creation
+       } = req.body; 
 
       const card_token='tok_visa';
       await stripe.customers.createSource(customerId,{
@@ -48,18 +49,18 @@ router.post('/add-card',verifyToken, async (req, res) => {
   }
 });
 
-// Step 3: Create a Payment Intent and return Payment Intent ID
+// Create a Payment Intent
 router.post('/payment-intent', verifyToken,async (req, res) => {
   try {
     const { orderId, customerId, amount } = req.body;
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount * 100, // Amount in cents
-      currency: 'INR', // Change to your currency
+      amount: amount * 100, 
+      currency: 'INR', 
       description: `Payment for Order ID: ${orderId}`,
       payment_method: 'pm_card_in', 
       payment_method_types: ['card'],
-      customer: customerId, // Use the customer's ID here
+      customer: customerId, 
     });
 
     res.json({paymentIntentId: paymentIntent.id} );
@@ -69,7 +70,7 @@ router.post('/payment-intent', verifyToken,async (req, res) => {
   }
 });
 
-// Step 4: Handle Payment Success (same as previous code)
+// Handle Payment Success 
 router.post('/payment-success', verifyToken, async (req, res) => {
   try {
     const { orderId, paymentIntentId } = req.body;
