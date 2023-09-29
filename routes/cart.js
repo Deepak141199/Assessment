@@ -4,9 +4,51 @@ const Cart = require('../models/Cart');
 const Product = require('../models/product'); 
 const jwt = require('jsonwebtoken');
 const secretkey="secretkey";
+const swaggerSpec = require('../swaggerconfig');
+const swaggerUi=require('swagger-ui-express');
 
 // Middleware to parse JSON request bodies
 router.use(express.json());
+
+// Serve Swagger UI
+router.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+
+
+/**
+ * @swagger
+ * /add/{productname}:
+ *   post:
+ *     summary: Add a product to the cart
+ *     description: Add a specified product to the user's cart with the given quantity.
+ *     security:
+ *       - BearerAuth: []  # Use this if the route requires authentication
+ *     parameters:
+ *       - in: path
+ *         name: productname
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The name of the product to add to the cart.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               quantity:
+ *                 type: integer
+ *                 description: The quantity of the product to add to the cart.
+ *                 minimum: 1
+ *     responses:
+ *       '200':
+ *         description: Product added to the cart successfully.
+ *       '404':
+ *         description: Product not found.
+ *       '500':
+ *         description: Internal Server Error.
+ */
 
 // add a product to the cart
 router.post('/add/:productname',verifyToken,   async (req, res) => {
@@ -43,6 +85,26 @@ router.post('/add/:productname',verifyToken,   async (req, res) => {
 });
 
 
+
+
+
+
+/**
+ * @swagger
+ * /view:
+ *   get:
+ *     summary: View items in the cart
+ *     description: Retrieve the items currently in the user's cart.
+ *     security:
+ *       - BearerAuth: []  # Use this if the route requires authentication
+ *     responses:
+ *       '200':
+ *         description: Items in the cart retrieved successfully.
+ *       '404':
+ *         description: Cart not found.
+ *       '500':
+ *         description: Internal Server Error.
+ */
 // get items in the user's cart
 router.get('/view', verifyToken, async (req, res) => {
   const userName = req.user.username;

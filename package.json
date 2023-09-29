@@ -4,12 +4,14 @@
   "description": "express project",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha tests.js"
   },
   "author": "Deepak",
   "license": "ISC",
   "dependencies": {
+    "axios": "^1.5.1",
     "bcrypt": "^5.1.1",
+    "cheerio": "^1.0.0-rc.12",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "cors": "^2.8.5",
@@ -27,6 +29,13 @@
     "npm": "^10.1.0",
     "reflect-metadata": "^0.1.13",
     "stripe": "^13.7.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
     "winston": "^3.10.0"
+  },
+  "devDependencies": {
+    "chai": "^4.3.10",
+    "chai-http": "^4.4.0",
+    "mocha": "^10.2.0"
   }
 }

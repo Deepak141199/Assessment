@@ -6,12 +6,21 @@ require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const jwt = require('jsonwebtoken');
 const secretkey = "secretkey";
+const swaggerSpec = require('../swaggerconfig');
+const swaggerUi=require('swagger-ui-express');
 //const PaymentIntentSerializer = require('../serializers');
 //const User = require('../models/user');
 
 
 
 router.use(express.json());
+
+// Serve Swagger UI
+router.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+
+
+
 
 // Create a Customer
 router.post('/create-customer', verifyToken,async (req, res) => {
@@ -49,6 +58,51 @@ router.post('/add-card',verifyToken, async (req, res) => {
   }
 });
 
+
+
+
+
+
+
+/**
+ * @swagger
+ * /payment-intent:
+ *   post:
+ *     summary: Create a Payment Intent
+ *     description: Create a Payment Intent for a specified order with customer details and an amount.
+ *     security:
+ *       - BearerAuth: []  # Use this if the route requires authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+  *               orderId:
+ *                 type: string
+ *                 description: The ID of the order.
+ *               customerId:
+ *                 type: string
+ *                 description: The ID of the customer.
+ *               amount:
+ *                 type: number
+ *                 description: The payment amount in INR (Indian Rupees).
+ *                 minimum: 0
+ *     responses:
+ *       '200':
+ *         description: Payment Intent created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 paymentIntentId:
+ *                   type: string
+ *                   description: The ID of the created Payment Intent.
+ *       '500':
+ *         description: Internal Server Error.
+ */
 // Create a Payment Intent
 router.post('/payment-intent', verifyToken,async (req, res) => {
   try {

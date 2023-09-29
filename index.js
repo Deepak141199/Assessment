@@ -13,10 +13,14 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { UserSerializer,ProductSerializer } = require('./serializers');
 const cors = require("cors"); 
+const logger = require('./logger');
 const secretkey="secretkey";
+const swaggerSpec = require('./swaggerconfig');
+const swaggerUi=require('swagger-ui-express')
 
 const app = express();
 const port = 3001;
+
 
 function verifyToken(req, res, next) {
   const token = req.headers['authorization'];
@@ -34,19 +38,22 @@ function verifyToken(req, res, next) {
   });
 }
 
+
 // Middleware
 app.use(express.json());
 app.use(cors()); 
 app.use(helmet());
 
+
 // rate limiter
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 6, 
+  max: 20, 
 });
 
 // rate limiting middleware
 app.use('/', limiter);
+
 
 //routes
 app.use('/cart', cartRoutes); 
@@ -54,6 +61,41 @@ app.use('/order', orderRoutes);
 app.use('/',paymentRoutes);
 app.use('/',fileRoutes);
 
+// Serve Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+
+
+/**
+ * @swagger
+ * /register:
+ *   post:
+ *     summary: Register a new user
+ *     description: Register a new user with a unique username and password.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: The username for the new user.
+ *               password:
+ *                 type: string
+ *                 description: The password for the new user.
+ *             required:
+ *               - username
+ *               - password
+ *     responses:
+ *       '201':
+ *         description: User registered successfully.
+ *       '400':
+ *         description: Bad request. User already exists.
+ *       '500':
+ *         description: Internal Server Error.
+ */
 
 // User registration 
 app.post('/register', async (req, res) => {
@@ -77,6 +119,59 @@ app.post('/register', async (req, res) => {
 });
 
 
+
+
+
+/**
+ * @swagger
+ * /login:
+ *   post:
+ *     summary: Authenticate a user
+ *     description: Authenticate a user with a valid username and password.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: The username of the user.
+ *               password:
+  *                 type: string
+ *                 description: The password of the user.
+ *             required:
+ *               - username
+ *               - password
+ *     responses:
+ *       '200':
+ *         description: Authentication successful.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: A message indicating successful authentication.
+ *                 token:
+ *                   type: string
+ *                   description: The JWT token for the authenticated user.
+  *                 userProfile:
+ *                   type: object
+ *                   properties:
+ *                     username:
+ *                       type: string
+ *                       description: The username of the authenticated user.
+ *                     userId:
+ *                       type: string
+ *                       description: The user ID of the authenticated user.
+ *       '401':
+ *         description: Invalid credentials.
+ *       '500':
+ *         description: Internal Server Error.
+ */
 
 // Authenticate a user
 app.post('/login', async (req, res) => {
@@ -113,6 +208,20 @@ app.post('/login', async (req, res) => {
 
 
 
+/**
+ * @swagger
+ * /products:
+ *   get:
+ *     summary: Get a list of products
+ *     description: Returns a list of products.
+ *     responses:
+ *       '200':
+ *         description: A successful response with a list of products.
+ *       '500':
+ *         description: Internal Server Error.
+ */
+
+
 // to retrieve products
 app.get('/products', async (req, res) => {
   try {
@@ -129,6 +238,26 @@ app.get('/products', async (req, res) => {
   }
 });
 
+
+/** 
+* @swagger
+* /products/{productId}:
+*   get:
+*     summary: Get a product by ID
+*     description: Retrieve a product by its unique ID.
+*     parameters:
+*       - in: path
+*         name: productId
+*         required: true
+*         schema:
+*           type: string
+*         description: The ID of the product to retrieve.
+*     responses:
+*       '200':
+*         description: A successful response with the product.
+*       '404':
+*         description: Product not found.
+*/
 
 
 app.get('/products/:productId', async (req, res, next) => {
@@ -148,6 +277,31 @@ app.get('/products/:productId', async (req, res, next) => {
 
 
 
+  /**
+ * @swagger
+ * /products:
+ *   post:
+ *     summary: Create a new product
+ *     description: Create a new product with the specified name and price.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+  *               name:
+ *                 type: string
+ *                 description: The name of the product.
+ *               price:
+ *                 type: number
+ *                 description: The price of the product.
+ *     responses:
+ *       '201':
+ *         description: Product created successfully.
+ *       '400':
+ *         description: Bad request. Product name and price are required.
+ */
 
   // Create a new product
 app.post('/products', verifyToken, async (req, res,next) => {
@@ -167,6 +321,9 @@ app.post('/products', verifyToken, async (req, res,next) => {
     }
   });
 
+
+
+  
 // Update an existing product
 app.put('/products/:productId', verifyToken, async (req, res) => {
   try {
@@ -271,7 +428,11 @@ app.use((error, req, res, next) => {
 
 // the global error handler
 app.use(handleGlobalError);
+
+logger.info('This is an info message');
+logger.error('This is an error message');
   
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
+module.exports = app;
